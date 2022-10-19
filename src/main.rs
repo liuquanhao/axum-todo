@@ -1,5 +1,5 @@
 //! Run example
-//! 
+//!
 //! ```bash
 //! $ psql
 //! postgres=# CREATE USER todouser WITH ENCRYPTED PASSWORD 'todopassword';
@@ -8,36 +8,19 @@
 //! $ POSTGRESQL_URL="postgres://todouser:todopassword@127.0.0.1:5432/todos" cargo run
 //! ```
 
-mod models;
 mod errors;
 mod handlers;
+mod models;
 
-use models::todo_repo::{
-    TodoRepo,
-    DynTodoRepo,
-    TodoRepoTrait,
-};
-use handlers::{
-    connect_pg,
-    create_todo,
-    list_todo,
-    get_todo,
-    update_todo,
-    delete_todo,
-};
+use handlers::{connect_pg, create_todo, delete_todo, get_todo, list_todo, update_todo};
+use models::todo_repo::{DynTodoRepo, TodoRepo, TodoRepoTrait};
 
 use axum::{
+    extract::Extension,
     routing::{get, post},
     Router,
-    extract::{
-        Extension,
-    },
 };
-use std::{
-    sync::{Arc},
-    net::SocketAddr,
-    env,
-};
+use std::{env, net::SocketAddr, sync::Arc};
 
 #[tokio::main]
 async fn main() {
@@ -45,13 +28,16 @@ async fn main() {
 
     let pg_url = match env::var("POSTGRESQL_URL") {
         Ok(url) => url,
-        Err(_) => panic!("Need env: POSTGRESQL_URL.")
+        Err(_) => panic!("Need env: POSTGRESQL_URL."),
     };
     let db_client = connect_pg(&pg_url).await;
     let todo_repo = Arc::new(TodoRepo::new(db_client).await) as DynTodoRepo;
     let app = Router::new()
         .route("/todos/", post(create_todo).get(list_todo))
-        .route("/todos/:id", get(get_todo).put(update_todo).delete(delete_todo))
+        .route(
+            "/todos/:id",
+            get(get_todo).put(update_todo).delete(delete_todo),
+        )
         .layer(Extension(todo_repo));
     let addr: &SocketAddr = &"0.0.0.0:3000".parse().unwrap();
     tracing::debug!("listening on {}", addr);

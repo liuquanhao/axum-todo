@@ -1,15 +1,10 @@
-use super::todo::*;
 use super::pagination::*;
+use super::todo::*;
 use crate::errors::todo_error::*;
 
-use std::{
-    sync::{Arc},
-};
-use tokio_postgres::{
-    Statement,
-    Client,
-};
 use axum::async_trait;
+use std::sync::Arc;
+use tokio_postgres::{Client, Statement};
 use uuid::Uuid;
 
 pub struct TodoRepo {
@@ -25,7 +20,9 @@ pub type DynTodoRepo = Arc<dyn TodoRepoTrait + Send + Sync>;
 
 #[async_trait]
 pub trait TodoRepoTrait {
-    async fn new(client: Arc<Client>) -> Self where Self: Sized;
+    async fn new(client: Arc<Client>) -> Self
+    where
+        Self: Sized;
     async fn create_todo(&self, create_todo: CreateTodo) -> Result<Todo, TodoRepoError>;
     async fn delete_todo(&self, id: Uuid) -> Result<u64, TodoRepoError>;
     async fn update_todo(&self, id: Uuid, update_todo: UpdateTodo) -> Result<u64, TodoRepoError>;
@@ -38,11 +35,26 @@ impl TodoRepoTrait for TodoRepo {
     async fn new(client: Arc<Client>) -> Self {
         TodoRepo {
             client: Arc::clone(&client),
-            create_todo: client.prepare("INSERT INTO todos (id, text, completed) VALUES ($1, $2, $3)").await.unwrap(),
-            delete_todo: client.prepare("DELETE FROM todos WHERE id = $1").await.unwrap(),
-            update_todo: client.prepare("UPDATE todos SET text = $1, completed = $2 WHERE id = $3").await.unwrap(),
-            get_todo: client.prepare("SELECT * FROM todos WHERE id = $1").await.unwrap(),
-            list_todo: client.prepare("SELECT * FROM todos OFFSET $1 LIMIT $2").await.unwrap(),
+            create_todo: client
+                .prepare("INSERT INTO todos (id, text, completed) VALUES ($1, $2, $3)")
+                .await
+                .unwrap(),
+            delete_todo: client
+                .prepare("DELETE FROM todos WHERE id = $1")
+                .await
+                .unwrap(),
+            update_todo: client
+                .prepare("UPDATE todos SET text = $1, completed = $2 WHERE id = $3")
+                .await
+                .unwrap(),
+            get_todo: client
+                .prepare("SELECT * FROM todos WHERE id = $1")
+                .await
+                .unwrap(),
+            list_todo: client
+                .prepare("SELECT * FROM todos OFFSET $1 LIMIT $2")
+                .await
+                .unwrap(),
         }
     }
 
@@ -52,7 +64,11 @@ impl TodoRepoTrait for TodoRepo {
             text: create_todo.text,
             completed: false,
         };
-        match self.client.execute(&self.create_todo, &[&todo.id, &todo.text, &todo.completed]).await {
+        match self
+            .client
+            .execute(&self.create_todo, &[&todo.id, &todo.text, &todo.completed])
+            .await
+        {
             Ok(_) => Ok(todo),
             Err(_) => Err(TodoRepoError::DatabaseError),
         }
@@ -70,19 +86,23 @@ impl TodoRepoTrait for TodoRepo {
             Ok(row) => row,
             Err(_) => return Err(TodoRepoError::NotFound),
         };
-        let tmp_text:String;
+        let tmp_text: String;
         if let Some(text) = update_todo.text {
             tmp_text = text;
         } else {
             tmp_text = row.get("text");
         }
-        let tmp_completed:bool;
+        let tmp_completed: bool;
         if let Some(completed) = update_todo.completed {
             tmp_completed = completed;
         } else {
             tmp_completed = row.get("completed");
         }
-        match self.client.execute(&self.update_todo, &[&tmp_text, &tmp_completed, &id]).await {
+        match self
+            .client
+            .execute(&self.update_todo, &[&tmp_text, &tmp_completed, &id])
+            .await
+        {
             Ok(num) => Ok(num),
             Err(_) => Err(TodoRepoError::DatabaseError),
         }
@@ -91,7 +111,7 @@ impl TodoRepoTrait for TodoRepo {
     async fn get_todo(&self, id: Uuid) -> Result<Todo, TodoRepoError> {
         let row = match self.client.query_one(&self.get_todo, &[&id]).await {
             Ok(row) => row,
-            Err(_) => return Err(TodoRepoError::NotFound)
+            Err(_) => return Err(TodoRepoError::NotFound),
         };
         let todo = Todo {
             id: row.get("id"),
@@ -102,9 +122,13 @@ impl TodoRepoTrait for TodoRepo {
     }
 
     async fn list_todo(&self, pagination: Pagination) -> Result<Vec<Todo>, TodoRepoError> {
-        let offset = ((pagination.page.unwrap_or(1) - 1) * pagination.per_page.unwrap_or(10)) as i64;
+        let offset =
+            ((pagination.page.unwrap_or(1) - 1) * pagination.per_page.unwrap_or(10)) as i64;
         let per_page = pagination.per_page.unwrap_or(10) as i64;
-        let stream = self.client.query(&self.list_todo, &[&offset, &per_page]).await;
+        let stream = self
+            .client
+            .query(&self.list_todo, &[&offset, &per_page])
+            .await;
         let rows = match stream {
             Ok(rows) => rows,
             Err(_) => vec![],
@@ -121,4 +145,3 @@ impl TodoRepoTrait for TodoRepo {
         Ok(todos)
     }
 }
-

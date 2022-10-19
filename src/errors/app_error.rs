@@ -20,12 +20,10 @@ impl From<TodoRepoError> for AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_msg) = match self {
-            AppError::TodoRepo(TodoRepoError::NotFound) => {
-                (StatusCode::NOT_FOUND, "没有找到Todo")
-            },
+            AppError::TodoRepo(TodoRepoError::NotFound) => (StatusCode::NOT_FOUND, "没有找到Todo"),
             AppError::TodoRepo(TodoRepoError::DatabaseError) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "数据库错误")
-            },
+            }
         };
         let body = Json(json!({
             "error": error_msg,
