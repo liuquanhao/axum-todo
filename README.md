@@ -44,13 +44,17 @@ GET: /todos/:id
 #### 创建todo
 
 POST: /todos/
+
 header: content-type:application/json
+
 body: {"text": "todo test"}
 
 #### 修改todo
 
 PUT: /todos/:id
+
 header: content-type:application/json
+
 body: {"text": "todo test2"}
 
 #### 删除todo
