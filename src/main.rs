@@ -13,38 +13,39 @@
 mod errors;
 mod handlers;
 mod models;
+mod pg_database;
 
-use handlers::{connect_pg, create_todo, delete_todo, get_todo, list_todo, update_todo};
+use handlers::{create_todo, delete_todo, get_todo, list_todo, update_todo};
 use models::todo_repo::{DynTodoRepo, TodoRepo};
+use pg_database::PgDatabase;
 
 use axum::{
     extract::Extension,
     routing::{get, post},
     Router,
 };
-use std::{env, net::SocketAddr, sync::Arc};
+use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let pg_url = match env::var("POSTGRESQL_URL") {
-        Ok(url) => url,
-        Err(_) => panic!("Need env: POSTGRESQL_URL."),
-    };
-    let db_client = connect_pg(&pg_url).await;
-    let todo_repo = Arc::new(TodoRepo::new(db_client).await) as DynTodoRepo;
-    let app = Router::new()
-        .route("/todos/", post(create_todo).get(list_todo))
-        .route(
-            "/todos/:id",
-            get(get_todo).put(update_todo).delete(delete_todo),
-        )
-        .layer(Extension(todo_repo));
+    let pg_database = PgDatabase::new(&PgDatabase::get_pg_url("POSTGRESQL_URL")).await;
+    let app = app(TodoRepo::new(pg_database).await.to_dyn());
     let addr: &SocketAddr = &"0.0.0.0:3000".parse().unwrap();
     tracing::debug!("listening on {}", addr);
     axum::Server::bind(addr)
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+fn app(todo_repo: DynTodoRepo) -> Router {
+    Router::new()
+        .route("/todos/", post(create_todo).get(list_todo))
+        .route(
+            "/todos/:id",
+            get(get_todo).put(update_todo).delete(delete_todo),
+        )
+        .layer(Extension(todo_repo))
 }

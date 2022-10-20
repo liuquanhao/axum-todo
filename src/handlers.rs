@@ -8,8 +8,6 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use std::sync::Arc;
-use tokio_postgres::{connect, Client, NoTls};
 use uuid::Uuid;
 
 pub async fn create_todo(
@@ -25,7 +23,7 @@ pub async fn delete_todo(
     Extension(todo_repo): Extension<DynTodoRepo>,
 ) -> Result<StatusCode, AppError> {
     let _ = todo_repo.delete_todo(id).await?;
-    Ok(StatusCode::OK)
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn update_todo(
@@ -34,7 +32,7 @@ pub async fn update_todo(
     Extension(todo_repo): Extension<DynTodoRepo>,
 ) -> Result<StatusCode, AppError> {
     let _ = todo_repo.update_todo(id, update_todo).await?;
-    Ok(StatusCode::OK)
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn get_todo(
@@ -52,14 +50,4 @@ pub async fn list_todo(
     let Query(pagination) = pagination.unwrap_or_default();
     let todos = todo_repo.list_todo(pagination).await?;
     Ok(Json(todos))
-}
-
-pub async fn connect_pg(pg_url: &str) -> Arc<Client> {
-    let (client, conn) = connect(pg_url, NoTls).await.expect("无法连接数据库");
-    tokio::spawn(async move {
-        if let Err(error) = conn.await {
-            eprintln!("数据库连接失败：{}", error);
-        }
-    });
-    Arc::new(client)
 }

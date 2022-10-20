@@ -1,6 +1,7 @@
-use super::pagination::*;
-use super::todo::*;
-use crate::errors::todo_error::*;
+use super::pagination::Pagination;
+use super::todo::{CreateTodo, Todo, UpdateTodo};
+use crate::errors::todo_error::TodoRepoError;
+use crate::pg_database::PgDatabase;
 
 use axum::async_trait;
 use std::sync::Arc;
@@ -118,29 +119,38 @@ impl TodoRepoTrait for TodoRepo {
 }
 
 impl TodoRepo {
-    pub async fn new(client: Arc<Client>) -> Self {
+    pub async fn new(pg_database: PgDatabase) -> Self {
         TodoRepo {
-            client: Arc::clone(&client),
-            create_todo: client
+            client: Arc::clone(&pg_database.client),
+            create_todo: pg_database
+                .client
                 .prepare("INSERT INTO todos (id, text, completed) VALUES ($1, $2, $3)")
                 .await
                 .unwrap(),
-            delete_todo: client
+            delete_todo: pg_database
+                .client
                 .prepare("DELETE FROM todos WHERE id = $1")
                 .await
                 .unwrap(),
-            update_todo: client
+            update_todo: pg_database
+                .client
                 .prepare("UPDATE todos SET text = $1, completed = $2 WHERE id = $3")
                 .await
                 .unwrap(),
-            get_todo: client
+            get_todo: pg_database
+                .client
                 .prepare("SELECT * FROM todos WHERE id = $1")
                 .await
                 .unwrap(),
-            list_todo: client
+            list_todo: pg_database
+                .client
                 .prepare("SELECT * FROM todos OFFSET $1 LIMIT $2")
                 .await
                 .unwrap(),
         }
+    }
+
+    pub fn to_dyn(self) -> DynTodoRepo {
+        Arc::new(self) as DynTodoRepo
     }
 }
