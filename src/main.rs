@@ -13,7 +13,7 @@ mod handlers;
 mod models;
 
 use handlers::{connect_pg, create_todo, delete_todo, get_todo, list_todo, update_todo};
-use models::todo_repo::{DynTodoRepo, TodoRepo, TodoRepoTrait};
+use models::todo_repo::{DynTodoRepo, TodoRepo};
 
 use axum::{
     extract::Extension,

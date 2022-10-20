@@ -7,6 +7,8 @@ use std::sync::Arc;
 use tokio_postgres::{Client, Statement};
 use uuid::Uuid;
 
+pub type DynTodoRepo = Arc<dyn TodoRepoTrait + Send + Sync>;
+
 pub struct TodoRepo {
     pub client: Arc<Client>,
     pub create_todo: Statement,
@@ -16,13 +18,8 @@ pub struct TodoRepo {
     pub list_todo: Statement,
 }
 
-pub type DynTodoRepo = Arc<dyn TodoRepoTrait + Send + Sync>;
-
 #[async_trait]
 pub trait TodoRepoTrait {
-    async fn new(client: Arc<Client>) -> Self
-    where
-        Self: Sized;
     async fn create_todo(&self, create_todo: CreateTodo) -> Result<Todo, TodoRepoError>;
     async fn delete_todo(&self, id: Uuid) -> Result<u64, TodoRepoError>;
     async fn update_todo(&self, id: Uuid, update_todo: UpdateTodo) -> Result<u64, TodoRepoError>;
@@ -32,32 +29,6 @@ pub trait TodoRepoTrait {
 
 #[async_trait]
 impl TodoRepoTrait for TodoRepo {
-    async fn new(client: Arc<Client>) -> Self {
-        TodoRepo {
-            client: Arc::clone(&client),
-            create_todo: client
-                .prepare("INSERT INTO todos (id, text, completed) VALUES ($1, $2, $3)")
-                .await
-                .unwrap(),
-            delete_todo: client
-                .prepare("DELETE FROM todos WHERE id = $1")
-                .await
-                .unwrap(),
-            update_todo: client
-                .prepare("UPDATE todos SET text = $1, completed = $2 WHERE id = $3")
-                .await
-                .unwrap(),
-            get_todo: client
-                .prepare("SELECT * FROM todos WHERE id = $1")
-                .await
-                .unwrap(),
-            list_todo: client
-                .prepare("SELECT * FROM todos OFFSET $1 LIMIT $2")
-                .await
-                .unwrap(),
-        }
-    }
-
     async fn create_todo(&self, create_todo: CreateTodo) -> Result<Todo, TodoRepoError> {
         let todo = Todo {
             id: Uuid::new_v4(),
@@ -143,5 +114,33 @@ impl TodoRepoTrait for TodoRepo {
             todos.push(todo);
         }
         Ok(todos)
+    }
+}
+
+impl TodoRepo {
+    pub async fn new(client: Arc<Client>) -> Self {
+        TodoRepo {
+            client: Arc::clone(&client),
+            create_todo: client
+                .prepare("INSERT INTO todos (id, text, completed) VALUES ($1, $2, $3)")
+                .await
+                .unwrap(),
+            delete_todo: client
+                .prepare("DELETE FROM todos WHERE id = $1")
+                .await
+                .unwrap(),
+            update_todo: client
+                .prepare("UPDATE todos SET text = $1, completed = $2 WHERE id = $3")
+                .await
+                .unwrap(),
+            get_todo: client
+                .prepare("SELECT * FROM todos WHERE id = $1")
+                .await
+                .unwrap(),
+            list_todo: client
+                .prepare("SELECT * FROM todos OFFSET $1 LIMIT $2")
+                .await
+                .unwrap(),
+        }
     }
 }
