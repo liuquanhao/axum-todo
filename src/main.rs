@@ -4,6 +4,8 @@
 //! $ psql
 //! postgres=# CREATE USER todouser WITH ENCRYPTED PASSWORD 'todopassword';
 //! postgres=# CREATE DATABASE todos;
+//! postgres=# GRANT ALL PRIVILEGES ON DATABASE todos to todouser;
+//! postgres=# \c todos
 //! postgres=# CREATE TABLE todos (id UUID PRIMARY KEY NOT NULL, text VARCHAR(255) NOT NULL DEFAULT '', completed BOOLEAN NOT NULL DEFAULT false);
 //! $ POSTGRESQL_URL="postgres://todouser:todopassword@127.0.0.1:5432/todos" cargo run
 //! ```
