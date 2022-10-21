@@ -16,7 +16,7 @@ mod models;
 mod pg_database;
 mod server;
 
-use handlers::{create_todo, delete_todo, get_todo, list_todo, update_todo};
+use handlers::{create_todo, delete_todo, get_todo, hello_world, list_todo, update_todo};
 use models::todo_repo::TodoRepo;
 use pg_database::PgDatabase;
 
@@ -40,6 +40,7 @@ async fn serve() {
     let todo_repo = TodoRepo::new(pg_database).await.to_dyn();
 
     let router = Router::new()
+        .route("/helloworld/", get(hello_world))
         .route("/todos/", post(create_todo).get(list_todo))
         .route(
             "/todos/:id",

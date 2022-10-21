@@ -6,9 +6,15 @@ use crate::models::todo_repo::DynTodoRepo;
 use axum::{
     extract::{Extension, Path, Query},
     http::StatusCode,
+    response::IntoResponse,
     Json,
 };
+use serde_json::json;
 use uuid::Uuid;
+
+pub async fn hello_world() -> impl IntoResponse {
+    Json(json!({"msg": "helloworld"}))
+}
 
 pub async fn create_todo(
     Json(create_todo): Json<CreateTodo>,
