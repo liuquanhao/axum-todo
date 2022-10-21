@@ -14,9 +14,10 @@ mod errors;
 mod handlers;
 mod models;
 mod pg_database;
+mod server;
 
 use handlers::{create_todo, delete_todo, get_todo, list_todo, update_todo};
-use models::todo_repo::{DynTodoRepo, TodoRepo};
+use models::todo_repo::TodoRepo;
 use pg_database::PgDatabase;
 
 use axum::{
@@ -24,28 +25,30 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use std::net::SocketAddr;
 
-#[tokio::main]
-async fn main() {
-    tracing_subscriber::fmt::init();
-
-    let pg_database = PgDatabase::new(&PgDatabase::get_pg_url("POSTGRESQL_URL")).await;
-    let app = app(TodoRepo::new(pg_database).await.to_dyn());
-    let addr: &SocketAddr = &"0.0.0.0:3000".parse().unwrap();
-    tracing::debug!("listening on {}", addr);
-    axum::Server::bind(addr)
-        .serve(app.into_make_service())
-        .await
+fn main() {
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .worker_threads(num_cpus::get())
+        .build()
         .unwrap();
+    rt.block_on(serve());
 }
 
-fn app(todo_repo: DynTodoRepo) -> Router {
-    Router::new()
+async fn serve() {
+    let pg_database = PgDatabase::new(&PgDatabase::get_pg_url("POSTGRESQL_URL")).await;
+    let todo_repo = TodoRepo::new(pg_database).await.to_dyn();
+
+    let router = Router::new()
         .route("/todos/", post(create_todo).get(list_todo))
         .route(
             "/todos/:id",
             get(get_todo).put(update_todo).delete(delete_todo),
         )
-        .layer(Extension(todo_repo))
+        .layer(Extension(todo_repo));
+
+    server::builder()
+        .serve(router.into_make_service())
+        .await
+        .unwrap();
 }
