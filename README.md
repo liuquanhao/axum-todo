@@ -2,6 +2,10 @@
 
 ## 简介
 
+### 系统
+
+[Debian11](https://www.debian.org/)
+
 ### rust框架
 
 [axum](https://github.com/tokio-rs/axum)
@@ -10,19 +14,35 @@
 
 ### 数据库
 
-postgresql-15
+[postgresql-15](https://www.postgresql.org/)
 
-### 压测项目
-
-[axum-todo-k6-test](https://github.com/liuquanhao/axum-todo-k6-test)
+### 压测工具
 
 apache2-utils: ab 2.3
 
-## 项目说明
+### 与本项目相关的测试项目
+
+[axum-todo-k6-test](https://github.com/liuquanhao/axum-todo-k6-test)
+
+## 压测说明
+
+### 安装准备环境和服务
+
+```bash
+# sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+# wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+# apt-get update
+# apt-get -y install postgresql-15 apache2-utils build-essential
+# curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# git clone https://github.com/liuquanhao/axum-todo.git
+# cd axum-todo
+# cargo build --release
+```
 
 ### 创建数据库/表
 
 ```bash
+# su - postgres
 $ psql
 postgres=# CREATE USER todouser WITH ENCRYPTED PASSWORD 'todopassword';
 postgres=# CREATE DATABASE todos;
@@ -37,6 +57,7 @@ postgres=# GRANT ALL ON todos TO todouser;
 ```bash
 $ ulimit -n
 102400
+
 $ cat /etc/sysctl.conf
 net.ipv4.ip_local_port_range=1024 65535
 net.ipv4.tcp_tw_reuse = 1
@@ -61,8 +82,20 @@ effective_cache_size = 1GB
 ### 运行项目
 
 ```bash
-$ cargo build --release 
 $ POSTGRESQL_URL="postgres://todouser:todopassword@127.0.0.1:5432/todos" ./target/release/axum-todo
+```
+
+### 压测命令
+
+```bash
+# cat create_todo.log 
+{"text": "ab test"}
+
+# ab -n10000 -c1000 "http://127.0.0.1:3000/helloworld/"
+# ab -n10000 -c1000 -p ./create_todo.log -T "application/json" "http://127.0.0.1:3000/todos/"
+# ab -n10000 -c1000 "http://127.0.0.1:3000/todos/"
+# ab -n10000 -c1000 "http://127.0.0.1:3000/todos/?page=1&per_page=10"
+# ab -n10000 -c1000 "http://127.0.0.1:3000/todos/{某个todo id}"
 ```
 
 ### 接口
