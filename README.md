@@ -61,7 +61,8 @@ effective_cache_size = 1GB
 ### 运行项目
 
 ```bash
-$ POSTGRESQL_URL="postgres://todouser:todopassword@127.0.0.1:5432/s" cargo run
+$ cargo build --release 
+$ POSTGRESQL_URL="postgres://todouser:todopassword@127.0.0.1:5432/todos" ./target/release/axum-todo
 ```
 
 ### 接口
