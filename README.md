@@ -89,11 +89,11 @@ $ POSTGRESQL_URL="postgres://todouser:todopassword@127.0.0.1:5432/todos" ./targe
 ### 压测命令
 
 ```bash
-# cat create_todo.log 
-{"text": "ab test"}
+# cat create_todo.json 
+{"text":"todo1"}
 
 # ab -n10000 -c1000 "http://127.0.0.1:3000/helloworld/"
-# ab -n10000 -c1000 -p ./create_todo.log -T "application/json" "http://127.0.0.1:3000/todos/"
+# ab -n10000 -c1000 -p ./create_todo.json -T "application/json" "http://127.0.0.1:3000/todos/"
 # ab -n10000 -c1000 "http://127.0.0.1:3000/todos/"
 # ab -n10000 -c1000 "http://127.0.0.1:3000/todos/?page=1&per_page=10"
 # ab -n10000 -c1000 "http://127.0.0.1:3000/todos/{某个todo id}"
