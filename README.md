@@ -65,6 +65,7 @@ net.ipv4.tcp_timestamps = 1
 
 $ cat /etc/postgresql/15/main/postgresql.conf
 # 修改关键配置
+shared_buffers = 256MB
 max_connections = 2000
 ssl = false
 # 具体看sql，简单sql 4MB也够用
